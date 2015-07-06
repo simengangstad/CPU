@@ -9,8 +9,8 @@ Version 0.3 - 06.07.15
 * Program counter (PC)
 
 The CPU support signed 32 bit signed integers. An error will occur in case of underflow or
-overflow. Pointers to bytes in memory are also 32 bit integers, making 2^32 the maximum amount of pointers
-that can exist simultaneously.
+overflow. Pointers to bytes in memory are also 32 bit integers, making 2^32 the maximum amount of 
+pointers that can exist simultaneously.
 
 Whenever the CPU process an instruction, it reads [PC], and then increases [PC]
 by one.
