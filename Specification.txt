@@ -8,14 +8,14 @@ Version 0.3 - 06.07.15
 * 8 registers (A, B, C, X, Y, Z, I, J)
 * Program counter (PC)
 
-The CPU support signed 32 bit signed integers. An error will occur in case of underflow or
+The CPU supports 32 bit signed integers. An error will occur in case of underflow or
 overflow. Pointers to bytes in memory are also 32 bit integers, making 2^32 the maximum amount of 
 pointers that can exist simultaneously.
 
-Whenever the CPU process an instruction, it reads [PC], and then increases [PC]
+Whenever the CPU processes an instruction, it reads PC, and then increases PC
 by one.
 
-Each instruciton is assembled to an array of integers. The instructions are
+Each instruction is assembled to an array of integers. The instructions are
 based on this order of integers:
 
 1. Length of instruction
@@ -52,19 +52,18 @@ d = Size in memory
  |       |                     | the CPU during runtime. A detailed description can be found
  |       |                     | further down the specification.
  |       |                     |
- | 0x02  | ADD a b             | Sets a to a + b and checks a for overflow.
- | 0x03  | SUB a b             | Sets a to a - b and checks a for underflow.
- | 0x04  | MUL a b             | Sets a to a * b and checks a for overflow and underflow.
- | 0x05  | DIV a b             | Sets a to a / b and checks a for overflow and underflow.
- |       |                     | a will be rounded.
+ | 0x02  | ADD a b             | Sets a to a + b.
+ | 0x03  | SUB a b             | Sets a to a - b.
+ | 0x04  | MUL a b             | Sets a to a * b.
+ | 0x05  | DIV a b             | Sets a to a / b. a will be rounded.
  |       |                     |
  | 0x06  | IFE a b             | Executes the next instruction if a == b.
  | 0x07  | IFN a b             | Executes the next instruction if a != b.
  | 0x08  | IFG a b             | Executes the next instruction if a > b.
  | 0x09  | IFL a b             | Executes the next instruction if a < b.
  |       |                     |
- | 0x0A  | MALLOC a b          | Allocates b amount of bytes and places the address to this
- |       |                     | in register a.
+ | 0x0A  | MALLOC a b          | Allocates b amount of bytes and places the address to these
+ |       |                     | bytes in register a.
  | 0x0B  | MFREE a             | Frees the bytes in memory at address a.
  | 0x0C  | MSET a b c d        | Sets the value of b in memory location a with c offset (in bytes)
  |       |                     | and d size (in bytes).
