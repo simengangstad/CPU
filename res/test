@@ -1,0 +1,14 @@
+set b 0xfffff
+
+set a 1
+add a pc
+
+malloc y 1
+mset y x 0 1
+
+add x 1
+
+ifl x b
+set pc a
+
+get j 0x1
