@@ -1,6 +1,6 @@
-package com.simn.cpu;
+package io.simengangstad.github.cpu;
 
-import com.simn.cpu.exception.MemoryException;
+import io.simengangstad.github.cpu.exception.MemoryException;
 
 import java.util.Arrays;
 import java.util.HashMap;

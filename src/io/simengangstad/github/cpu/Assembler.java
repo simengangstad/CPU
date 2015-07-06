@@ -1,6 +1,6 @@
-package com.simn.cpu;
+package io.simengangstad.github.cpu;
 
-import com.simn.cpu.exception.AssembleException;
+import io.simengangstad.github.cpu.exception.AssembleException;
 
 /**
  * @author simengangstad

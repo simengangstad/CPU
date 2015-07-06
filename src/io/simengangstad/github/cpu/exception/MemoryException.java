@@ -1,4 +1,4 @@
-package com.simn.cpu.exception;
+package io.simengangstad.github.cpu.exception;
 
 /**
  * @author simengangstad

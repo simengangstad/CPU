@@ -1,4 +1,4 @@
-package com.simn.cpu;
+package io.simengangstad.github.cpu;
 
 /**
  * @author simengangstad
