@@ -1,6 +1,7 @@
 package io.simengangstad.github.cpu;
 
 import io.simengangstad.github.cpu.exception.AssembleException;
+import io.simengangstad.github.cpu.hardware.Monitor;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -11,6 +12,8 @@ public class Main {
     public static void main(String[] args) {
 
         CPU cpu = new CPU();
+        //cpu.attachHardware(0, new Monitor(16, 16));
+
 
         Assembler assembler = new Assembler();
 
@@ -52,22 +55,21 @@ public class Main {
             return;
         }
 
+        /*
         System.out.println("\nByte code:");
 
         for (int i = 0; i < assembledCode.length; i++) {
 
-            System.out.println(i + ". " + assembledCode[i]);
+            System.out.println(i + ". " + "0x" + Integer.toHexString(assembledCode[i]));
         }
 
         System.out.println();
-
+*/
         cpu.execute(assembledCode);
-        cpu.dumpRegisters();
+        cpu.dumpValues();
 
 
-        System.out.println();
-
-        //cpu.memory.dump();
+        cpu.memory.dump();
     }
 
     public static String toBinaryString(byte value) {

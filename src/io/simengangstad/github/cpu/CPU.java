@@ -1,8 +1,7 @@
 package io.simengangstad.github.cpu;
 
-import io.simengangstad.github.cpu.exception.MemoryException;
-
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * @author simengangstad
@@ -13,22 +12,31 @@ public class CPU {
     /**
      * Instructions.
      */
-    private static final int
+    public static final int
 
-            SET = 0x0,
-            GET = 0x1,
-            ADD = 0x2,
-            SUB = 0x3,
-            MUL = 0x4,
-            DIV = 0x5,
-            IFE = 0x6,
-            IFN = 0x7,
-            IFG = 0x8,
-            IFL = 0x9,
-            MALLOC = 0xA,
-            MFREE = 0xB,
-            MSET = 0xC,
-            MGET = 0xD;
+            SET             = 0x00,
+            GET             = 0x01,
+
+            ADD             = 0x10,
+            SUB             = 0x11,
+            MUL             = 0x12,
+            DIV             = 0x13,
+            MOD             = 0x14,
+
+            AND             = 0x20,
+            OR              = 0x21,
+            XOR             = 0x22,
+            NOT             = 0x23,
+            SHR             = 0x24,
+            SHL             = 0x25,
+            USHR            = 0x26,
+
+            IFE             = 0x30,
+            IFN             = 0x31,
+            IFG             = 0x32,
+            IFL             = 0x33,
+
+            HDISPATCH       = 0x50;
 
     /**
      * Return values from get instruction.
@@ -39,9 +47,11 @@ public class CPU {
             TIME_SINCE_BOOT = 0x1;
 
     /**
-     * Program counter. Used for tracking instructions.
+     * Program counter, stack pointer and extra.
      */
-    private static final int PC = 0x8;
+    private static final int PC = 0x8,
+                             SP = 0x9,
+                             EX = 0xA;
 
     /**
      * Instruction counter. Used for tracking within instructions.
@@ -54,9 +64,9 @@ public class CPU {
     private int[] instructionCounterArray;
 
     /**
-     * The 32 bit register which can hold data.
+     * The 32 bit values which can hold data (registers, pc, sp and ex).
      */
-    private int[] registers = new int[9];
+    private int[] values = new int[11];
 
     /**
      * If the program should pass one instruction cycle.
@@ -81,11 +91,52 @@ public class CPU {
     private int time = 0x0;
 
     /**
+     * The attached hardware of the CPU.
+     */
+    private HashMap<Integer, AttachableHardware> attachableHardware = new HashMap<>();
+
+    /**
+     * Variables used to reduce memory footprint.
+     */
+    private int[] hardwareDispatchArgs = new int[2];
+    private int[] arguments = new int[2];
+
+    /**
      * Constructs the CPU.
      */
     public CPU() {
 
-        memory = new Memory(0xFFFFFF);
+        memory = new Memory(512);
+    }
+
+    /**
+     * Attaches hardware.
+     *
+     * @param location The location to attach the hardware.
+     * @param attachableHardware The hardware that is being attached to the CPU.
+     */
+    public void attachHardware(int location, AttachableHardware attachableHardware) {
+
+        if (this.attachableHardware.containsKey(location)) {
+
+            fault("Already attached hardware at locaiton " + location + ". Select a different location.");
+        }
+
+        attachableHardware.memory = memory;
+
+        this.attachableHardware.put(location, attachableHardware);
+    }
+
+    /**
+     * Detaches hardware.
+     *
+     * @param location The location of the hardware.
+     */
+    public void detachHardware(int location) {
+
+        attachableHardware.get(location).memory = null;
+
+        attachableHardware.remove(location);
     }
 
     /*
@@ -117,57 +168,26 @@ public class CPU {
             instructionCounterArray[c] = instructionCounterArrayBuild.get(c);
         }
 
-        int[] args = new int[0];
         int offset;
-
-        int value;
-        boolean isRegister;
-
-        int index;
 
         long timeBeforeInstruction;
 
-        while (registers[PC] + instructionCounter < program.length) {
+        while (values[PC] + instructionCounter < program.length) {
 
             timeBeforeInstruction = System.currentTimeMillis();
 
-            offset = program[registers[PC] + instructionCounter];
+            offset = program[values[PC] + instructionCounter];
 
             if (passCycle == 0) {
 
-                if ((offset - 1 - 1) / 2 > args.length) {
-
-                    args = new int[(offset - 1 - 1) / 2];
-                }
-
-                for (index = 0; index < (offset - 1 - 1) / 2; index++) {
-
-                    // Is the value receieven from a register?
-                    isRegister = program[registers[PC] + instructionCounter + 1 + 1 + 1 + index * 2] == 1;
-
-                    if (isRegister) {
-
-                        // Value register is holding
-                        value = registers[program[registers[PC] + instructionCounter + 1 + 1 + index * 2]];
-                    }
-                    else {
-
-                        // Raw value
-
-                        value = program[registers[PC] + instructionCounter + 1 + 1 + index * 2];
-                    }
-
-                    args[index] = value;
-                }
-
-                executeInternalInstruction(program, args);
+                executeInstruction(program);
             }
 
             passCycle -= (passCycle > 0 ? 1 : 0);
 
             if (!settingProgramCounter) {
 
-                registers[PC]++;
+                values[PC]++;
                 instructionCounter += (offset - 1);
             }
 
@@ -185,25 +205,61 @@ public class CPU {
     }
 
     /**
-     * Executes an internal instruction.
-     *
-     * @param program The whole program including all instructions.
-     * @param arguments Arguments of the current instruction. This will include integers,
-     *                  or if registers are given, the value of the register.
+     * Executes the instruction.
      */
-    private void executeInternalInstruction(int[] program, int[] arguments) {
-
-        int address = program[registers[PC] + instructionCounter + 2];
+    private void executeInstruction(int program[]) {
 
         try {
 
-            switch (program[registers[PC] + instructionCounter + 1]) {
+            int amountOfArguments = (program[values[PC] + instructionCounter] - 2) / 3;
+            int address = -1;
+            boolean writeToMemory = false;
+
+            if (arguments.length < amountOfArguments) {
+
+                arguments = new int[amountOfArguments];
+            }
+
+            for (int i = 0; i < amountOfArguments; i++) {
+
+                int value                  = program[values[PC] + instructionCounter + 2 + 3 * i];
+                boolean retrieveFromMemory = program[values[PC] + instructionCounter + 3 + 3 * i] == 1;
+                boolean register           = program[values[PC] + instructionCounter + 4 + 3 * i] == 1;
+
+                if (retrieveFromMemory) {
+
+                    if (i == 0) {
+
+                        writeToMemory = true;
+
+                        address = register ? values[value] : value;
+                    }
+
+                    arguments[i] = register ? memory.get(values[value]) : memory.get(value);
+                }
+                else {
+
+                    if (i == 0) {
+
+                        if (!register && amountOfArguments >= 2) {
+
+                            fault("Invalid argument: " + "'" + value + "'.");
+                        }
+
+                        address = value;
+                    }
+
+                    arguments[i] = register ? values[value] : value;
+                }
+            }
+
+            switch (program[values[PC] + instructionCounter + 1]) {
 
                 case SET:
 
                     arguments[0] = arguments[1];
 
-                    setValue(address, arguments[0]);
+                    setValue(address, writeToMemory, arguments[0]);
 
                     break;
 
@@ -213,13 +269,13 @@ public class CPU {
 
                         case MEMORY_CAPASITY:
 
-                            setValue(address, memory.capasity);
+                            setValue(address, writeToMemory, memory.capasity());
 
                             break;
 
                         case TIME_SINCE_BOOT:
 
-                            setValue(address, time);
+                            setValue(address, writeToMemory, time);
 
                             break;
                     }
@@ -228,17 +284,27 @@ public class CPU {
 
                 case ADD:
 
+                    if (arguments[0] + arguments[1] > 0xffffffff) {
+
+                        values[EX] = 0x0001;
+                    }
+
                     arguments[0] += arguments[1];
 
-                    setValue(address, arguments[0]);
+                    setValue(address, writeToMemory, arguments[0]);
 
                     break;
 
                 case SUB:
 
+                    if (arguments[0] - arguments[1] < 0x0) {
+
+                        values[EX] = 0xffff;
+                    }
+
                     arguments[0] -= arguments[1];
 
-                    setValue(address, arguments[0]);
+                    setValue(address, writeToMemory, arguments[0]);
 
                     break;
 
@@ -246,7 +312,7 @@ public class CPU {
 
                     arguments[0] *= arguments[1];
 
-                    setValue(address, arguments[0]);
+                    setValue(address, writeToMemory, arguments[0]);
 
                     break;
 
@@ -254,12 +320,85 @@ public class CPU {
 
                     if (arguments[1] == 0) {
 
-                        fault("Can't divide by zero.");
+                        values[EX] = 0x0;
+                        arguments[0] = 0x0;
+                    }
+                    else {
+
+                        arguments[0] /= arguments[1];
                     }
 
-                    arguments[0] /= arguments[1];
+                    setValue(address, writeToMemory, arguments[0]);
 
-                    setValue(address, arguments[0]);
+                    break;
+
+                case MOD:
+
+                    if (arguments[1] == 0) {
+
+                        values[EX] = 0x0;
+                        arguments[0] = 0x0;
+                    }
+                    else {
+
+                        arguments[0] %= arguments[1];
+                    }
+
+                    setValue(address, writeToMemory, arguments[0]);
+
+                    break;
+
+                case AND:
+
+                    arguments[0] &= arguments[1];
+
+                    setValue(address, writeToMemory, arguments[0]);
+
+                    break;
+
+                case OR:
+
+                    arguments[0] |= arguments[1];
+
+                    setValue(address, writeToMemory, arguments[0]);
+
+                    break;
+
+                case XOR:
+
+                    arguments[0] ^= arguments[1];
+
+                    setValue(address, writeToMemory, arguments[0]);
+
+                    break;
+
+                case NOT:
+
+                    setValue(address, writeToMemory, ~arguments[0]);
+
+                    break;
+
+                case SHR:
+
+                    arguments[0] = arguments[0] >> arguments[1];
+
+                    setValue(address, writeToMemory, arguments[0]);
+
+                    break;
+
+                case SHL:
+
+                    arguments[0] = arguments[0] << arguments[1];
+
+                    setValue(address, writeToMemory, arguments[0]);
+
+                    break;
+
+                case USHR:
+
+                    arguments[0] = arguments[0] >>> arguments[1];
+
+                    setValue(address, writeToMemory, arguments[0]);
 
                     break;
 
@@ -299,71 +438,43 @@ public class CPU {
 
                     break;
 
-                case MALLOC:
+                case HDISPATCH:
 
-                    setValue(address, memory.alloc(arguments[1]));
+                    if (arguments.length - 1 > hardwareDispatchArgs.length) {
 
-                    break;
-
-                case MFREE:
-
-                    memory.free(arguments[0]);
-
-                    break;
-
-                case MSET: {
-
-                    int value = arguments[1];
-
-                    byte[] bytes = new byte[arguments[3]];
-
-                    for (int i = 0; i < arguments[3]; i++) {
-
-                        bytes[i] = (byte) (value >>> ((arguments[3] - 1) * 8 - i * 8));
+                        hardwareDispatchArgs = new int[arguments.length - 1];
                     }
 
-                    memory.set(arguments[0], bytes, arguments[2]);
+                    System.arraycopy(arguments, 1, hardwareDispatchArgs, 0, arguments.length - 1);
 
-                    break;
-                }
-                case MGET: {
+                    int location = arguments[0];
 
-                    byte[] bytes = memory.get(arguments[1], arguments[2], arguments[3]);
+                    if (writeToMemory) {
 
-                    int value = 0;
-
-                    for (int i = 0; i < bytes.length; i++) {
-
-                        // Sets the bits of the value at index of 32, 24, 16 and 8 equal to the bits in memory
-                        // Do this by setting the first 8 bits equal to bytes[n] and pushing back eight bits per
-                        // time this loop runs
-                        value ^= ((bytes[i] & 0xFF) << ((bytes.length) * 8 - (i + 1) * 8));
+                        location = memory.get(address);
                     }
 
-                    // Makes the value only hold values <= 0xFFFFFFFF
-                    value &= 0xFFFFFFFF;
-
-                    setValue(address, value);
+                    attachableHardware.get(location).process(hardwareDispatchArgs, arguments.length - 1);
 
                     break;
-                }
+
                 default:
 
-                    fault("Unknown instruction.");
-
-                    break;
+                    fault("Unknown instruction or too many/few arguments in instruction.");
             }
         }
-        catch (MemoryException memoryException) {
+        catch (Exception exception) {
 
-            fault(memoryException.getMessage());
+            exception.printStackTrace();
+
+            fault(exception.getMessage());
         }
     }
 
     /**
      * Sets the value at the specified address.
      */
-    private void setValue(int address, int value) {
+    private void setValue(int address, boolean writeToMemory, int value) {
 
         if (address == PC) {
 
@@ -372,7 +483,14 @@ public class CPU {
             settingProgramCounter = true;
         }
 
-        registers[address] = value;
+        if (writeToMemory) {
+
+            memory.set(address, value);
+        }
+        else {
+
+            values[address] = value;
+        }
     }
 
     /**
@@ -380,37 +498,38 @@ public class CPU {
      */
     private void fault(String msg) {
 
-        System.err.println("Instruction fault at: " + registers[PC] + ". " + msg);
+        Exit.exit("Instruction fault at " + values[PC] + ": " + msg);
     }
 
     /**
-     * Dumps the registers.
+     * Dumps the values.
      */
-    public void dumpRegisters() {
+    public void dumpValues() {
 
         System.out.println(
 
-                "CPU registers:" + "\n" +
-                "Register A [" + registers[0] + "]" + "\n" +
-                "Register B [" + registers[1] + "]" + "\n" +
-                "Register C [" + registers[2] + "]" + "\n" +
-                "Register X [" + registers[3] + "]" + "\n" +
-                "Register Y [" + registers[4] + "]" + "\n" +
-                "Register Z [" + registers[5] + "]" + "\n" +
-                "Register I [" + registers[6] + "]" + "\n" +
-                "Register J [" + registers[7] + "]" + "\n" +
-                "PC [" + registers[PC] + "]" + "\n"
+                "Register A [" + values[0] + "]" + "\n" +
+                "Register B [" + values[1] + "]" + "\n" +
+                "Register C [" + values[2] + "]" + "\n" +
+                "Register X [" + values[3] + "]" + "\n" +
+                "Register Y [" + values[4] + "]" + "\n" +
+                "Register Z [" + values[5] + "]" + "\n" +
+                "Register I [" + values[6] + "]" + "\n" +
+                "Register J [" + values[7] + "]" + "\n" +
+                "PC         [" + values[PC] + "]" + "\n" +
+                "SP         [" + values[SP] + "]" + "\n" +
+                "EX         [" + values[EX] + "]" + "\n"
         );
     }
 
     /**
-     * Resets the registers.
+     * Resets the values.
      */
     private void reset() {
 
-        for (int i = 0; i < registers.length; i++) {
+        for (int i = 0; i < values.length; i++) {
 
-            registers[i] = 0;
+            values[i] = 0;
         }
     }
 }

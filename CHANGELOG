@@ -1,0 +1,11 @@
+0.0.0 - 21.07.15
+--------------------------------------------------------------------------------------------------
+
+Added bitwise instructions.
+Added modulo instruction.
+Added functionality for optional arguments.
+Redesigned memory structure.
+
+
+0.0.1 -
+--------------------------------------------------------------------------------------------------

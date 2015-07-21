@@ -1,0 +1,9 @@
+[x] Modulo instruction.
+[x] Bitwise operations (AND, OR, XOR, NOT, left shift, right shift, unsigned right shift).
+[x] Optional arguments.
+[x] Redesign memory structure for ability to set without allocation. Define a symbol (asterix for example)
+    which declares that we're looking at the value from memory so that we can use values from memory in
+    instructions like set, get, add etc.
+[ ] Labels (:) which you can jump to using PC.
+[ ] Stack.
+[ ] Subroutines.
