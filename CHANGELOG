@@ -14,3 +14,5 @@
 where operations beyond the bounds of 32 bit signed integers caused an error.
 * Added jump-to-subroutine instruction, JSR, which can be used for delegating instructions.
 * Implemented better line comments as well as block comments.
+* Implemented stack memory.
+* Implemented ability to retrieve information from hardware.
