@@ -1,0 +1,32 @@
+hdp 0x0 0x0 0x0
+get i 0x1
+
+
+@draw_loop
+
+ife a 4096
+set pc flush
+
+set *a 255
+add a 1
+
+set pc draw_loop
+
+
+@flush
+
+hdp 0x0 0x2
+set a 0
+add y 1
+get j 0x1
+
+sub j i
+
+ifg j 10000
+set pc end
+
+set pc draw_loop
+
+@end
+
+div y 10

@@ -71,6 +71,19 @@ public class Memory {
     }
 
     /**
+     * Copies a chunk of the memory into an array.
+     *
+     * @param sourcePosition The position in memory where the copy shall begin.
+     * @param destination The destination array.
+     * @param destinationPosition The position in the destination array where the copy shall be placed.
+     * @param length The amount of words that shall be copied.
+     */
+    public void copyInto(int sourcePosition, int[] destination, int destinationPosition, int length) {
+
+        System.arraycopy(ram, sourcePosition, destination, destinationPosition, length);
+    }
+
+    /**
      * Resets the memory.
      */
     public void reset() {
@@ -79,13 +92,29 @@ public class Memory {
     }
 
     /**
-     * Dumps the values of the memory.
+     * Dumps the values of the memory in the specified area defined by a index and length.
+     *
+     * @param index The start index of the dump.
+     * @param length The amount of elements getting dumped.
+     */
+    public void dump(int index, int length) {
+
+        if (index < 0 || index + length >= ram.length) {
+
+            throw new RuntimeException("Index and length out of bounds for memory.");
+        }
+
+        for (int i = index; i < length; i++) {
+
+            System.out.println("0x" + Integer.toHexString(i) + ": 0x"  + Integer.toHexString(ram[i]));
+        }
+    }
+
+    /**
+     * Dumps the values of the memoory.
      */
     public void dump() {
 
-        for (int i = 0; i < ram.length; i++) {
-
-            System.out.println("0x" + Integer.toHexString(i) + ": " + "0b" + Integer.toBinaryString(ram[i]));
-        }
+        dump(0, ram.length - 1);
     }
 }

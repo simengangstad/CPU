@@ -1,11 +1,16 @@
 0.0.0 - 21.07.15
 --------------------------------------------------------------------------------------------------
 
-Added bitwise instructions.
-Added modulo instruction.
-Added functionality for optional arguments.
-Redesigned memory structure.
+* Added bitwise instructions.
+* Added modulo instruction.
+* Added functionality for optional arguments.
+* Redesigned memory structure.
 
 
-0.0.1 -
+0.0.1 - 31.07.15
 --------------------------------------------------------------------------------------------------
+* Added labels.
+* Made some modifications to how unsigned 32 bit integers were stored internally and fixed a bug
+where operations beyond the bounds of 32 bit signed integers caused an error.
+* Added jump-to-subroutine instruction, JSR, which can be used for delegating instructions.
+* Implemented better line comments as well as block comments.

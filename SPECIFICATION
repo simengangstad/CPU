@@ -1,6 +1,8 @@
 CPU specification
 Version 0.5 - 16.07.15
 
+!!! WORK IN PROGRESS - MAY CHANGE !!!
+
 === SUMMARY ======================================================================================
 
 * 32 bit words
@@ -15,8 +17,7 @@ x.
 
 Whenever the CPU processes an instruction, it reads PC, and then increases PC
 by one. The default value of the stack pointer is 0xffff. Pushing words onto the stack will
-decrease SP by one, and popping will increase SP by one. In case of a stack overflow EX will be set
-set to 0x0001, and in case of stack underflow EX will be set to 0xffff.
+decrease SP by one, and popping will increase SP by one.
 
 Each instruction is assembled to an array of words. The instructions are
 based on this order:
@@ -64,13 +65,10 @@ Arguments marked with parantheses are optional.
  |       |                     | the CPU during runtime. A detailed description can be found
  |       |                     | further down the specification.
  |       |                     |
- | 0x10  | ADD a b             | Sets a to a + b. In case of an overflow EX is set to 0x0001 and
- |       |                     | a is set to a + b - 0x100000000.
- | 0x11  | SUB a b             | Sets a to a - b. In case of an underflow EX is set to 0xffff and
- |       |                     | a is set to a - b + 0x100000000.
+ | 0x10  | ADD a b             | Sets a to a + b.
+ | 0x11  | SUB a b             | Sets a to a - b.
  | 0x12  | MUL a b             | Sets a to a * b.
- | 0x13  | DIV a b             | Sets a to a / b. a will be rounded down. If b == 0, sets a to 0
- |       |                     | and EX to 0x0000.
+ | 0x13  | DIV a b             | Sets a to a / b. a will be rounded down.
  | 0x14  | MOD a b             | Sets a to a % b.
  |       |                     |
  | 0x20  | AND a b             | Sets a to a & b.
@@ -86,7 +84,10 @@ Arguments marked with parantheses are optional.
  | 0x32  | IFG a b             | Executes the next instruction if a > b.
  | 0x33  | IFL a b             | Executes the next instruction if a < b.
  |       |                     |
- | 0x50  | HDISPACTCH a n      | Dispatches n to hardware location a
+ | 0x40  | JSR a               | Pushes PC onto the stack and sets PC to a.
+ |       |                     |
+ | 0x50  | HDP a n             | Dispatches n to hardware location a.
+ | 0x51  | HRT a b n           | Retrieves n from location a to b.
  |       |                     |
  |       |                     |
  |       |                     |
@@ -98,5 +99,5 @@ Arguments marked with parantheses are optional.
  | VALUE | DESCRIPTION
 -+-------+----------------------------------------------------------------------------------------
  | 0x00  | Amount of hardware memory (in words) installed in the CPU.
- | 0x01  | Time since the boot of the CPU. Will reset after 0xFFFE milliseconds.
+ | 0x01  | Milliseconds since the boot of the CPU. Will reset after 0xffffffff milliseconds.
 -+-------+----------------------------------------------------------------------------------------

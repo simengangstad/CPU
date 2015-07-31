@@ -12,7 +12,7 @@ public class Main {
     public static void main(String[] args) {
 
         CPU cpu = new CPU();
-        //cpu.attachHardware(0, new Monitor(16, 16));
+        cpu.attachHardware(0, new Monitor(48, 32));
 
 
         Assembler assembler = new Assembler();
@@ -23,7 +23,7 @@ public class Main {
 
         try {
 
-            BufferedReader bufferedReader = new BufferedReader(new FileReader("res/test"));
+            BufferedReader bufferedReader = new BufferedReader(new FileReader("res/draw_loop"));
 
             String line;
 
@@ -46,7 +46,7 @@ public class Main {
 
         try {
 
-            assembledCode = assembler.assemble(code, true);
+            assembledCode = assembler.assemble(code, false);
         }
         catch (AssembleException assembledException) {
 
@@ -54,8 +54,7 @@ public class Main {
 
             return;
         }
-
-        /*
+/*
         System.out.println("\nByte code:");
 
         for (int i = 0; i < assembledCode.length; i++) {
@@ -63,17 +62,11 @@ public class Main {
             System.out.println(i + ". " + "0x" + Integer.toHexString(assembledCode[i]));
         }
 
-        System.out.println();
-*/
+        System.out.println();*/
         cpu.execute(assembledCode);
-        cpu.dumpValues();
+        cpu.dumpRegisters();
 
 
-        cpu.memory.dump();
-    }
-
-    public static String toBinaryString(byte value) {
-
-        return String.format("%8s", Integer.toBinaryString(value & 0xFF)).replace(" ", "0");
+        cpu.memory.dump(0, 10);
     }
 }
